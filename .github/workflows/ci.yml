@@ -51,10 +51,16 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
 
+    - name: Decode SSH key
+      id: decode_key
+      run: |
+        echo "${{ secrets.SSH_PRIVATE_KEY_BASE64 }}" | base64 -d > my-key.ppk
+        chmod 600 my-key.ppk
+
     - name: Add SSH key
       uses: webfactory/ssh-agent@v0.5.3
       with:
-        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+        ssh-private-key: my-key.ppk
 
     - name: Test SSH connection
       run: |
