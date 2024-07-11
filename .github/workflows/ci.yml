@@ -48,44 +48,38 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: Decode SSH key
-      id: decode_key
-      run: |
-        echo "${{ secrets.SSH_PRIVATE_KEY_BASE64 }}" | base64 -d > my-key.ppk
-        chmod 600 my-key.ppk
+      - name: Add SSH key
+        uses: webfactory/ssh-agent@v0.5.3
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-    - name: Add SSH key
-      uses: webfactory/ssh-agent@v0.5.3
-      with:
-        ssh-private-key: my-key.ppk
+      - name: Test SSH connection
+        run: |
+          ssh -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_INSTANCE_PUBLIC_DNS }} echo "SSH connection successful"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: 'ap-northeast-2'
+          EC2_INSTANCE_ID: ${{ secrets.EC2_INSTANCE_ID }}
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_IMAGE_NAME: 'for-our-lives-frontend'
 
-    - name: Test SSH connection
-      run: |
-        ssh -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_INSTANCE_PUBLIC_DNS }} echo "SSH connection successful"
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        AWS_REGION: 'ap-northeast-2'
-        EC2_INSTANCE_ID: ${{ secrets.EC2_INSTANCE_ID }}
-        DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-        DOCKER_IMAGE_NAME: 'for-our-lives-frontend'
-
-    - name: Deploy to EC2
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        AWS_REGION: 'ap-northeast-2'
-        EC2_INSTANCE_ID: ${{ secrets.EC2_INSTANCE_ID }}
-        DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-        DOCKER_IMAGE_NAME: 'for-our-lives-frontend'
-      run: |
-        ssh -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_INSTANCE_PUBLIC_DNS }} << 'EOF'
-          echo $AWS_SECRET_ACCESS_KEY | docker login -u $DOCKER_USERNAME --password-stdin
-          docker pull $DOCKER_USERNAME/$DOCKER_IMAGE_NAME
-          docker stop app || true
-          docker rm app || true
-          docker run -d --name app -p 80:80 $DOCKER_USERNAME/$DOCKER_IMAGE_NAME
-        EOF
+      - name: Deploy to EC2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: 'ap-northeast-2'
+          EC2_INSTANCE_ID: ${{ secrets.EC2_INSTANCE_ID }}
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_IMAGE_NAME: 'for-our-lives-frontend'
+        run: |
+          ssh -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_INSTANCE_PUBLIC_DNS }} << 'EOF'
+            echo $AWS_SECRET_ACCESS_KEY | docker login -u $DOCKER_USERNAME --password-stdin
+            docker pull $DOCKER_USERNAME/$DOCKER_IMAGE_NAME
+            docker stop app || true
+            docker rm app || true
+            docker run -d --name app -p 80:80 $DOCKER_USERNAME/$DOCKER_IMAGE_NAME
+          EOF
