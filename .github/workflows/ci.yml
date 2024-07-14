@@ -48,14 +48,29 @@ jobs:
     runs-on: self-hosted
 
     steps:
+      - name: Check if Docker is installed
+        run: |
+          if ! command -v docker &> /dev/null
+          then
+            echo "Docker could not be found, installing..."
+            curl -fsSL https://get.docker.com -o get-docker.sh
+            sh get-docker.sh
+          else
+            echo "Docker is already installed"
+          fi
+
+      - name: Log in to Docker Hub
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_ACCESS_TOKEN }}
+        run: echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+
       - name: Deploy Docker container
         env:
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-          DOCKER_IMAGE_NAME: 'for-our-lives-frontend'
           DOCKER_PASSWORD: ${{ secrets.DOCKER_ACCESS_TOKEN }}
         run: |
-          echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
-          docker pull $DOCKER_USERNAME/$DOCKER_IMAGE_NAME
+          docker pull $DOCKER_USERNAME/for-our-lives-frontend
           docker stop app || true
           docker rm app || true
-          docker run -d --name app -p 80:80 $DOCKER_USERNAME/$DOCKER_IMAGE_NAME
+          docker run -d --name app -p 80:80 $DOCKER_USERNAME/for-our-lives-frontend
