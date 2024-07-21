@@ -69,8 +69,11 @@ jobs:
         env:
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           DOCKER_PASSWORD: ${{ secrets.DOCKER_ACCESS_TOKEN }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
         run: |
           docker pull $DOCKER_USERNAME/for-our-lives-frontend
           docker stop app || true
           docker rm app || true
-          docker run -d --name app -p 80:80 $DOCKER_USERNAME/for-our-lives-frontend
+          docker run -d --name app -p 80:80 \
+            -e GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID \
+            $DOCKER_USERNAME/for-our-lives-frontend
